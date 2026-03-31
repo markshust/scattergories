@@ -203,6 +203,47 @@
     const LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','R','S','T','W'];
     const TOTAL_TIME = 150; // 2 minutes 30 seconds
 
+    // Web Audio API sound effects
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function ensureAudio() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, duration, type = 'sine', volume = 0.3) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playWarningBeep() {
+      playTone(880, 0.3, 'sine', 0.4);
+    }
+
+    function playTick() {
+      playTone(1200, 0.08, 'square', 0.15);
+    }
+
+    function playBuzzer() {
+      playTone(150, 0.6, 'sawtooth', 0.5);
+      setTimeout(() => {
+        playTone(220, 0.6, 'sawtooth', 0.5);
+      }, 200);
+    }
+
+    function playFinalBeeps() {
+      playTone(1000, 0.15, 'square', 0.4);
+      setTimeout(() => playTone(1000, 0.15, 'square', 0.4), 200);
+      setTimeout(() => playTone(1400, 0.3, 'square', 0.4), 400);
+    }
+
     const die = document.getElementById('die');
     const timerDisplay = document.getElementById('timerDisplay');
     const timerBarFill = document.getElementById('timerBarFill');
@@ -272,13 +313,20 @@
         timeLeft--;
         updateTimerUI();
 
+        if (timeLeft === 30) {
+          playWarningBeep();
+        } else if (timeLeft <= 10 && timeLeft > 0) {
+          playTick();
+        }
+
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
           timerRunning = false;
           timerBtn.textContent = 'Start Timer';
           timerDisplay.textContent = "Time!";
-          // Vibrate on mobile if supported
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          playBuzzer();
+          setTimeout(playFinalBeeps, 700);
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
         }
       }, 1000);
     }
@@ -295,7 +343,7 @@
 
     die.addEventListener('click', rollDie);
     rollBtn.addEventListener('click', rollDie);
-    timerBtn.addEventListener('click', startTimer);
+    timerBtn.addEventListener('click', () => { ensureAudio(); startTimer(); });
     resetBtn.addEventListener('click', resetAll);
 
     updateTimerUI();
