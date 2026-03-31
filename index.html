@@ -244,6 +244,31 @@
       setTimeout(() => playTone(1400, 0.3, 'square', 0.4), 400);
     }
 
+    function playRollSound() {
+      ensureAudio();
+      playTone(400, 0.06, 'triangle', 0.25);
+      setTimeout(() => playTone(500, 0.06, 'triangle', 0.25), 70);
+      setTimeout(() => playTone(650, 0.1, 'triangle', 0.3), 140);
+    }
+
+    function playStartSound() {
+      ensureAudio();
+      playTone(520, 0.1, 'sine', 0.3);
+      setTimeout(() => playTone(700, 0.15, 'sine', 0.3), 120);
+    }
+
+    function playPauseSound() {
+      ensureAudio();
+      playTone(500, 0.1, 'sine', 0.25);
+      setTimeout(() => playTone(380, 0.15, 'sine', 0.25), 120);
+    }
+
+    function playResumeSound() {
+      ensureAudio();
+      playTone(440, 0.08, 'sine', 0.25);
+      setTimeout(() => playTone(580, 0.12, 'sine', 0.3), 100);
+    }
+
     const die = document.getElementById('die');
     const timerDisplay = document.getElementById('timerDisplay');
     const timerBarFill = document.getElementById('timerBarFill');
@@ -260,6 +285,7 @@
     }
 
     function rollDie() {
+      playRollSound();
       die.classList.remove('rolling');
       // Force reflow to restart animation
       void die.offsetWidth;
@@ -296,6 +322,7 @@
     function startTimer() {
       if (timerRunning) {
         // Pause
+        playPauseSound();
         clearInterval(timerInterval);
         timerRunning = false;
         timerBtn.textContent = 'Resume';
@@ -306,6 +333,11 @@
         timeLeft = TOTAL_TIME;
       }
 
+      if (timeLeft < TOTAL_TIME) {
+        playResumeSound();
+      } else {
+        playStartSound();
+      }
       timerRunning = true;
       timerBtn.textContent = 'Pause';
 
