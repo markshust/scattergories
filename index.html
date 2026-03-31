@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Scattergories Dice</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      margin-bottom: 1.5rem;
+      text-align: center;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #e94560;
+    }
+
+    .dice-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .die {
+      width: clamp(140px, 45vw, 200px);
+      height: clamp(140px, 45vw, 200px);
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border: 4px solid #e94560;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(4rem, 15vw, 7rem);
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform 0.15s ease;
+      box-shadow: 0 8px 30px rgba(233, 69, 96, 0.3);
+    }
+
+    .die:active {
+      transform: scale(0.95);
+    }
+
+    .die.rolling {
+      animation: roll 0.5s ease-out;
+    }
+
+    @keyframes roll {
+      0% { transform: rotateX(0deg) scale(0.8); }
+      25% { transform: rotateX(90deg) scale(0.9); }
+      50% { transform: rotateX(180deg) scale(1.05); }
+      75% { transform: rotateX(270deg) scale(0.95); }
+      100% { transform: rotateX(360deg) scale(1); }
+    }
+
+    .timer-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .timer-display {
+      font-size: clamp(2.5rem, 10vw, 4rem);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #53d8fb;
+    }
+
+    .timer-display.warning {
+      color: #f5a623;
+    }
+
+    .timer-display.critical {
+      color: #e94560;
+      animation: pulse 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to { opacity: 0.4; }
+    }
+
+    .timer-bar {
+      width: clamp(200px, 70vw, 340px);
+      height: 8px;
+      background: #16213e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .timer-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: #53d8fb;
+      border-radius: 4px;
+      transition: width 0.25s linear, background 0.3s;
+    }
+
+    .timer-bar-fill.warning {
+      background: #f5a623;
+    }
+
+    .timer-bar-fill.critical {
+      background: #e94560;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
+      font-weight: 600;
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .btn-roll {
+      background: #e94560;
+      color: #fff;
+    }
+
+    .btn-timer {
+      background: #53d8fb;
+      color: #1a1a2e;
+    }
+
+    .btn-reset {
+      background: #444;
+      color: #eee;
+    }
+
+    .instructions {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+      color: #888;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scattergories</h1>
+
+  <div class="dice-container">
+    <div class="die" id="die" role="button" aria-label="Roll die">?</div>
+  </div>
+
+  <div class="timer-section">
+    <div class="timer-display" id="timerDisplay">2:30</div>
+    <div class="timer-bar">
+      <div class="timer-bar-fill" id="timerBarFill"></div>
+    </div>
+    <div class="buttons">
+      <button class="btn-roll" id="rollBtn">Roll</button>
+      <button class="btn-timer" id="timerBtn">Start Timer</button>
+      <button class="btn-reset" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <p class="instructions">Tap the die or press Roll to get a letter. Start the 2:30 timer when ready!</p>
+
+  <script>
+    const LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','R','S','T','W'];
+    const TOTAL_TIME = 150; // 2 minutes 30 seconds
+
+    const die = document.getElementById('die');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerBarFill = document.getElementById('timerBarFill');
+    const rollBtn = document.getElementById('rollBtn');
+    const timerBtn = document.getElementById('timerBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let timerInterval = null;
+    let timeLeft = TOTAL_TIME;
+    let timerRunning = false;
+
+    function randomLetter() {
+      return LETTERS[Math.floor(Math.random() * LETTERS.length)];
+    }
+
+    function rollDie() {
+      die.classList.remove('rolling');
+      // Force reflow to restart animation
+      void die.offsetWidth;
+      die.classList.add('rolling');
+
+      let flicks = 0;
+      const flickInterval = setInterval(() => {
+        die.textContent = randomLetter();
+        flicks++;
+        if (flicks >= 8) {
+          clearInterval(flickInterval);
+          die.textContent = randomLetter();
+        }
+      }, 60);
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerUI() {
+      timerDisplay.textContent = formatTime(timeLeft);
+      const pct = (timeLeft / TOTAL_TIME) * 100;
+      timerBarFill.style.width = pct + '%';
+
+      // Color states
+      const cls = timeLeft <= 15 ? 'critical' : timeLeft <= 45 ? 'warning' : '';
+      timerDisplay.className = 'timer-display' + (cls ? ' ' + cls : '');
+      timerBarFill.className = 'timer-bar-fill' + (cls ? ' ' + cls : '');
+    }
+
+    function startTimer() {
+      if (timerRunning) {
+        // Pause
+        clearInterval(timerInterval);
+        timerRunning = false;
+        timerBtn.textContent = 'Resume';
+        return;
+      }
+
+      if (timeLeft <= 0) {
+        timeLeft = TOTAL_TIME;
+      }
+
+      timerRunning = true;
+      timerBtn.textContent = 'Pause';
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerUI();
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          timerBtn.textContent = 'Start Timer';
+          timerDisplay.textContent = "Time!";
+          // Vibrate on mobile if supported
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+      }, 1000);
+    }
+
+    function resetAll() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timeLeft = TOTAL_TIME;
+      timerBtn.textContent = 'Start Timer';
+      die.textContent = '?';
+      die.classList.remove('rolling');
+      updateTimerUI();
+    }
+
+    die.addEventListener('click', rollDie);
+    rollBtn.addEventListener('click', rollDie);
+    timerBtn.addEventListener('click', startTimer);
+    resetBtn.addEventListener('click', resetAll);
+
+    updateTimerUI();
+  </script>
+</body>
+</html>
